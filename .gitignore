@@ -1,1 +1,19 @@
-﻿AI-Decision-Flow-Build-Spec.md
+﻿AI-Decision-Flow-Build-Spec-Python-Backend.md
+
+# Environment files
+backend/.env
+frontend/.env.local
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+
+# Build
+.next/
+dist/
+build/
+
+# Virtual Environment files
+backend/.venv
+backend/.venv/
