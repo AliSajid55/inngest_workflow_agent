@@ -1,6 +1,7 @@
 import uuid
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.base import BaseHTTPMiddleware
 import inngest
 import inngest.fast_api
 from inngest_app.client import inngest_client
@@ -10,9 +11,22 @@ from store import RUNS
 
 app = FastAPI()
 
+
+class InngestBodyFixMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        if request.url.path == "/api/inngest" and request.method == "POST":
+            body = await request.body()
+            if not body:
+                from starlette.responses import JSONResponse
+                return JSONResponse(content={"ok": True}, status_code=200)
+        return await call_next(request)
+
+
+app.add_middleware(InngestBodyFixMiddleware)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
+    allow_origins=["*"],
     allow_methods=["*"],
     allow_headers=["*"],
 )

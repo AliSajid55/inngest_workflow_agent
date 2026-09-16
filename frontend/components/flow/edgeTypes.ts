@@ -1,3 +1,3 @@
-import { EdgeTypes } from "@xyflow/react";
+import { type EdgeTypes } from "@xyflow/react";
 
 export const edgeTypes: EdgeTypes = {};

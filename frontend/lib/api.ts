@@ -16,12 +16,24 @@ export async function runWorkflow(
       }),
     }
   );
-  return res.json();
+  const data = await res.json();
+  return { runId: data.run_id };
 }
 
 export async function getRunStatus(runId: string): Promise<RunStatus> {
   const res = await fetch(
     `${process.env.NEXT_PUBLIC_API_BASE_URL}/runs/${runId}`
   );
-  return res.json();
+  const data = await res.json();
+  return {
+    runId: data.run_id,
+    status: data.status,
+    log: (data.log || []).map((step: Record<string, unknown>) => ({
+      nodeId: step.node_id,
+      label: step.label,
+      prompt: step.prompt,
+      result: step.result,
+      timestamp: step.timestamp,
+    })),
+  };
 }

@@ -32,7 +32,7 @@ type FlowStore = {
   onNodesChange: OnNodesChange;
   onEdgesChange: OnEdgesChange;
   onConnect: (connection: Connection) => void;
-  addNode: (node: DecisionFlowNode) => void;
+  addNode: () => void;
   setSelectedNodeId: (id: string | null) => void;
   updateNodeData: (id: string, data: Partial<DecisionNodeData>) => void;
   setRunId: (id: string | null) => void;
@@ -48,44 +48,115 @@ type ExecutionStep = {
   timestamp: string;
 };
 
+const STORAGE_KEY = "ai-decision-flow-graph";
+
+function loadFromStorage(): { nodes: DecisionFlowNode[]; edges: DecisionFlowEdge[] } {
+  if (typeof window === "undefined") return { nodes: [], edges: [] };
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const data = JSON.parse(saved);
+      return { nodes: data.nodes || [], edges: data.edges || [] };
+    }
+  } catch {}
+  return { nodes: [], edges: [] };
+}
+
+function saveToStorage(nodes: DecisionFlowNode[], edges: DecisionFlowEdge[]) {
+  if (typeof window === "undefined") return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({ nodes, edges }));
+  } catch {}
+}
+
+const initialData = loadFromStorage();
+
+let nodeCounter = initialData.nodes.length;
+
 export const useFlowStore = create<FlowStore>((set, get) => ({
-  nodes: [],
-  edges: [],
+  nodes: initialData.nodes,
+  edges: initialData.edges,
   selectedNodeId: null,
   runId: null,
   runStatus: "idle",
   executionLog: [],
 
-  setNodes: (nodes) => set({ nodes }),
-  setEdges: (edges) => set({ edges }),
+  setNodes: (nodes) => {
+    saveToStorage(nodes, get().edges);
+    set({ nodes });
+  },
+
+  setEdges: (edges) => {
+    saveToStorage(get().nodes, edges);
+    set({ edges });
+  },
 
   onNodesChange: (changes) => {
-    set({ nodes: applyNodeChanges(changes, get().nodes) as DecisionFlowNode[] });
+    const newNodes = applyNodeChanges(changes, get().nodes) as DecisionFlowNode[];
+    saveToStorage(newNodes, get().edges);
+    set({ nodes: newNodes });
   },
 
   onEdgesChange: (changes) => {
-    set({ edges: applyEdgeChanges(changes, get().edges) as DecisionFlowEdge[] });
+    const newEdges = applyEdgeChanges(changes, get().edges) as DecisionFlowEdge[];
+    saveToStorage(get().nodes, newEdges);
+    set({ edges: newEdges });
   },
 
   onConnect: (connection) => {
+    const { nodes, edges } = get();
+    const sourceId = connection.source;
     const branch = (connection.sourceHandle as "YES" | "NO") || "YES";
-    const newEdge = {
-      ...connection,
-      data: { branch },
-    } as DecisionFlowEdge;
-    set({ edges: addEdge(newEdge, get().edges) as DecisionFlowEdge[] });
+
+    const existingEdgeForSource = edges.find(
+      (e) => e.source === sourceId && e.data?.branch === branch
+    );
+
+    let newEdges: DecisionFlowEdge[];
+    if (existingEdgeForSource) {
+      newEdges = edges.map((e) =>
+        e.id === existingEdgeForSource.id
+          ? { ...e, target: connection.target!, targetHandle: connection.targetHandle }
+          : e
+      ) as DecisionFlowEdge[];
+    } else {
+      const newEdge: DecisionFlowEdge = {
+        id: `${sourceId}-${connection.target}-${branch}`,
+        source: sourceId!,
+        target: connection.target!,
+        sourceHandle: connection.sourceHandle,
+        targetHandle: connection.targetHandle,
+        data: { branch },
+      };
+      newEdges = [...edges, newEdge];
+    }
+
+    saveToStorage(nodes, newEdges);
+    set({ edges: newEdges });
   },
 
-  addNode: (node) => set((state) => ({ nodes: [...state.nodes, node] })),
+  addNode: () => {
+    nodeCounter++;
+    const newNode: DecisionFlowNode = {
+      id: `node-${nodeCounter}`,
+      type: "decision",
+      position: { x: 250, y: nodeCounter * 150 },
+      data: { label: `Node ${nodeCounter}`, prompt: "" },
+    };
+    const newNodes = [...get().nodes, newNode];
+    saveToStorage(newNodes, get().edges);
+    set({ nodes: newNodes });
+  },
 
   setSelectedNodeId: (id) => set({ selectedNodeId: id }),
 
-  updateNodeData: (id, data) =>
-    set((state) => ({
-      nodes: state.nodes.map((n) =>
-        n.id === id ? { ...n, data: { ...n.data, ...data } } : n
-      ),
-    })),
+  updateNodeData: (id, data) => {
+    const newNodes = get().nodes.map((n) =>
+      n.id === id ? { ...n, data: { ...n.data, ...data } } : n
+    );
+    saveToStorage(newNodes, get().edges);
+    set({ nodes: newNodes });
+  },
 
   setRunId: (id) => set({ runId: id }),
   setRunStatus: (status) => set({ runStatus: status }),
