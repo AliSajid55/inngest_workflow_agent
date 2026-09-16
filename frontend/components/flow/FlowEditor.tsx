@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useEffect, useCallback } from "react";
 import {
   ReactFlow,
   Background,
@@ -11,6 +11,7 @@ import {
   BaseEdge,
   getBezierPath,
   type Node,
+  useReactFlow,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { nodeTypes } from "./nodeTypes";
@@ -75,8 +76,32 @@ export default function FlowEditor() {
   const onNodesChange = useFlowStore((s) => s.onNodesChange);
   const onEdgesChange = useFlowStore((s) => s.onEdgesChange);
   const onConnect = useFlowStore((s) => s.onConnect);
+  const deleteNode = useFlowStore((s) => s.deleteNode);
+  const deleteEdge = useFlowStore((s) => s.deleteEdge);
+  const { getNodes, getEdges } = useReactFlow();
 
   const memoizedEdgeTypes = useMemo(() => edgeTypes, []);
+
+  const handleKeyDown = useCallback(
+    (event: KeyboardEvent) => {
+      if (event.key === "Delete" || event.key === "Backspace") {
+        const selectedNodes = getNodes().filter((n) => n.selected);
+        const selectedEdges = getEdges().filter((e) => e.selected);
+
+        if (selectedNodes.length > 0) {
+          selectedNodes.forEach((n) => deleteNode(n.id));
+        } else if (selectedEdges.length > 0) {
+          selectedEdges.forEach((e) => deleteEdge(e.id));
+        }
+      }
+    },
+    [getNodes, getEdges, deleteNode, deleteEdge]
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown]);
 
   const { processedNodes, animatedEdges } = useMemo(() => {
     if (executionLog.length === 0) {

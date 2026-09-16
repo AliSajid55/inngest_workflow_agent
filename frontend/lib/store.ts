@@ -36,6 +36,8 @@ type FlowStore = {
   addNode: () => void;
   setSelectedNodeId: (id: string | null) => void;
   updateNodeData: (id: string, data: Partial<DecisionNodeData>) => void;
+  deleteNode: (id: string) => void;
+  deleteEdge: (id: string) => void;
   setRunId: (id: string | null) => void;
   setRunStatus: (status: "idle" | "running" | "completed" | "failed") => void;
   setExecutionLog: (log: ExecutionStep[]) => void;
@@ -75,7 +77,17 @@ function saveToStorage(nodes: DecisionFlowNode[], edges: DecisionFlowEdge[]) {
 
 const initialData = loadFromStorage();
 
-let nodeCounter = initialData.nodes.length;
+function getNextNodeNumber(nodes: DecisionFlowNode[]): number {
+  const usedNumbers = new Set(
+    nodes.map((n) => {
+      const match = n.id.match(/node-(\d+)/);
+      return match ? parseInt(match[1], 10) : 0;
+    })
+  );
+  let i = 1;
+  while (usedNumbers.has(i)) i++;
+  return i;
+}
 
 export const useFlowStore = create<FlowStore>((set, get) => ({
   nodes: initialData.nodes,
@@ -141,12 +153,12 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   },
 
   addNode: () => {
-    nodeCounter++;
+    const num = getNextNodeNumber(get().nodes);
     const newNode: DecisionFlowNode = {
-      id: `node-${nodeCounter}`,
+      id: `node-${num}`,
       type: "decision",
-      position: { x: 250, y: nodeCounter * 150 },
-      data: { label: `Node ${nodeCounter}`, prompt: "" },
+      position: { x: 250, y: num * 150 },
+      data: { label: `Node ${num}`, prompt: "" },
     };
     const newNodes = [...get().nodes, newNode];
     saveToStorage(newNodes, get().edges);
@@ -161,6 +173,19 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
     );
     saveToStorage(newNodes, get().edges);
     set({ nodes: newNodes });
+  },
+
+  deleteNode: (id) => {
+    const newNodes = get().nodes.filter((n) => n.id !== id);
+    const newEdges = get().edges.filter((e) => e.source !== id && e.target !== id);
+    saveToStorage(newNodes, newEdges);
+    set({ nodes: newNodes, edges: newEdges, selectedNodeId: null });
+  },
+
+  deleteEdge: (id) => {
+    const newEdges = get().edges.filter((e) => e.id !== id);
+    saveToStorage(get().nodes, newEdges);
+    set({ edges: newEdges });
   },
 
   setRunId: (id) => set({ runId: id }),

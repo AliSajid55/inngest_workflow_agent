@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useState, useEffect } from "react";
+import { ReactFlowProvider } from "@xyflow/react";
 
 const FlowEditor = dynamic(
   () => import("../components/flow/FlowEditor"),
@@ -47,7 +48,9 @@ export default function Home() {
       <Toolbar />
       <div className="flex flex-1 overflow-hidden">
         <div className="flex-1">
-          <FlowEditor />
+          <ReactFlowProvider>
+            <FlowEditor />
+          </ReactFlowProvider>
         </div>
         <ExecutionLogPanel />
       </div>
