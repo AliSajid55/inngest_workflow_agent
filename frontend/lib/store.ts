@@ -26,6 +26,7 @@ type FlowStore = {
   runId: string | null;
   runStatus: "idle" | "running" | "completed" | "failed";
   executionLog: ExecutionStep[];
+  totalAttempts: number;
 
   setNodes: (nodes: DecisionFlowNode[]) => void;
   setEdges: (edges: DecisionFlowEdge[]) => void;
@@ -38,6 +39,7 @@ type FlowStore = {
   setRunId: (id: string | null) => void;
   setRunStatus: (status: "idle" | "running" | "completed" | "failed") => void;
   setExecutionLog: (log: ExecutionStep[]) => void;
+  setTotalAttempts: (total: number) => void;
 };
 
 type ExecutionStep = {
@@ -46,6 +48,8 @@ type ExecutionStep = {
   prompt: string;
   result: "YES" | "NO";
   timestamp: string;
+  attempt: number;
+  failed: boolean;
 };
 
 const STORAGE_KEY = "ai-decision-flow-graph";
@@ -80,6 +84,7 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   runId: null,
   runStatus: "idle",
   executionLog: [],
+  totalAttempts: 0,
 
   setNodes: (nodes) => {
     saveToStorage(nodes, get().edges);
@@ -161,4 +166,5 @@ export const useFlowStore = create<FlowStore>((set, get) => ({
   setRunId: (id) => set({ runId: id }),
   setRunStatus: (status) => set({ runStatus: status }),
   setExecutionLog: (log) => set({ executionLog: log }),
+  setTotalAttempts: (total) => set({ totalAttempts: total }),
 }));

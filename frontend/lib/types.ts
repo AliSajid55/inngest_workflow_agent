@@ -19,10 +19,13 @@ export type ExecutionStep = {
   prompt: string;
   result: "YES" | "NO";
   timestamp: string;
+  attempt: number;
+  failed: boolean;
 };
 
 export type RunStatus = {
   runId: string;
   status: "running" | "completed" | "failed";
   log: ExecutionStep[];
+  totalAttempts: number;
 };

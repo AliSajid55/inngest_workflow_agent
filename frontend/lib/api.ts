@@ -34,6 +34,9 @@ export async function getRunStatus(runId: string): Promise<RunStatus> {
       prompt: step.prompt,
       result: step.result,
       timestamp: step.timestamp,
+      attempt: step.attempt || 1,
+      failed: step.failed || false,
     })),
+    totalAttempts: data.total_attempts || 0,
   };
 }

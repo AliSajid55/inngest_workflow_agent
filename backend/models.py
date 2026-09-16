@@ -37,9 +37,12 @@ class ExecutionStep(BaseModel):
     prompt: str
     result: Literal["YES", "NO"]
     timestamp: str
+    attempt: int = 1
+    failed: bool = False
 
 
 class RunStatus(BaseModel):
     run_id: str
     status: Literal["running", "completed", "failed"]
     log: list[ExecutionStep] = []
+    total_attempts: int = 0
