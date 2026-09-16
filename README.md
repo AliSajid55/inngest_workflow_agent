@@ -2,6 +2,10 @@
 
 An autonomous AI-powered decision engine that visually orchestrates intelligent workflows through a node-based graph interface. Each node acts as an AI agent that evaluates context, makes binary decisions, and routes execution dynamically - turning static flowcharts into living, reasoning systems.
 
+<p align="center">
+  <img src="screenshot.png" alt="AI Decision Flow Dashboard" width="100%" />
+</p>
+
 ## What It Does
 
 This isn't a diagram tool. It's a **thinking machine**.
